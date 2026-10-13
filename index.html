@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Publicador de mensajes asíncrono con JavaScript, Fetch API y manipulación del DOM - Ingeniería Web">
+  <title>Publicador de Mensajes | JavaScript Asíncrono & Fetch API</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Encabezado Institucional / Proyecto -->
+    <header class="app-header">
+      <div class="header-badge">Ingeniería Web · Trabajo Práctico</div>
+      <h1 class="header-title">Publicador de Mensajes Asíncrono</h1>
+      <p class="header-subtitle">
+        Validación en cliente, consumo de API REST mediante HTTP <code>POST</code> con Fetch API y renderizado dinámico en el DOM.
+      </p>
+    </header>
+
+    <main class="main-content">
+      <!-- Columna Izquierda: Formulario de Redacción -->
+      <section class="card form-card" aria-labelledby="form-heading">
+        <div class="card-header">
+          <div class="card-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 id="form-heading" class="card-title">Nueva Publicación</h2>
+            <p class="card-description">Completa los campos para enviar la publicación a la API REST.</p>
+          </div>
+        </div>
+
+        <form id="post-form" class="post-form" novalidate>
+          <!-- Campo Título -->
+          <div class="form-group">
+            <label for="post-title" class="form-label">
+              Título de la publicación <span class="required" aria-hidden="true">*</span>
+            </label>
+            <div class="input-wrapper">
+              <input 
+                type="text" 
+                id="post-title" 
+                name="title" 
+                class="form-control" 
+                placeholder="Ej. Introducción a la Arquitectura Asíncrona" 
+                autocomplete="off"
+                required
+              >
+            </div>
+            <span id="title-error" class="error-text" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- Campo Contenido -->
+          <div class="form-group">
+            <label for="post-body" class="form-label">
+              Contenido del mensaje <span class="required" aria-hidden="true">*</span>
+            </label>
+            <div class="input-wrapper">
+              <textarea 
+                id="post-body" 
+                name="body" 
+                rows="5" 
+                class="form-control textarea" 
+                placeholder="Escribe aquí el cuerpo del mensaje..."
+                required
+              ></textarea>
+            </div>
+            <span id="body-error" class="error-text" role="alert" aria-live="polite"></span>
+          </div>
+
+          <!-- Botón de Envío y Limpiar -->
+          <div class="form-actions">
+            <button type="submit" id="submit-btn" class="btn btn-primary">
+              <span id="btn-spinner" class="spinner hidden" aria-hidden="true"></span>
+              <span id="btn-text">Publicar Mensaje</span>
+              <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+            <button type="button" id="reset-btn" class="btn btn-secondary">
+              Limpiar
+            </button>
+          </div>
+        </form>
+
+        <!-- Contenedor de Alertas de Estado (Carga / Errores de validación) -->
+        <div id="status-container" class="status-container hidden" role="status" aria-live="polite">
+          <div id="status-icon" class="status-icon"></div>
+          <div id="status-message" class="status-message"></div>
+        </div>
+      </section>
+
+      <!-- Columna Derecha: Panel de Respuestas y Logs Técnicos -->
+      <section class="card results-card" aria-labelledby="results-heading">
+        <div class="card-header">
+          <div class="card-icon card-icon-purple">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+          </div>
+          <div>
+            <h2 id="results-heading" class="card-title">Respuesta de la API</h2>
+            <p class="card-description">Inspección de datos devueltos por <code>JSONPlaceholder</code>.</p>
+          </div>
+        </div>
+
+        <!-- Estado Inicial: Sin datos -->
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+              <line x1="6" y1="6" x2="6.01" y2="6"></line>
+              <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+          </div>
+          <h3 class="empty-title">Esperando publicación</h3>
+          <p class="empty-text">Envía una publicación desde el formulario para observar la respuesta HTTP POST y el ID asignado por el servidor.</p>
+        </div>
+
+        <!-- Tarjeta de Resultado Dinámico (Inyectado por DOM) -->
+        <div id="result-box" class="result-box hidden">
+          <div class="result-header">
+            <span id="response-badge" class="badge badge-success">HTTP 201 Created</span>
+            <span id="response-timestamp" class="timestamp"></span>
+          </div>
+
+          <div class="result-body">
+            <div class="meta-row">
+              <div class="meta-item">
+                <span class="meta-label">ID Asignado:</span>
+                <span id="res-id" class="meta-value code-chip">#---</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Método:</span>
+                <span class="meta-value code-chip">POST</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Endpoint:</span>
+                <span class="meta-value code-chip text-truncate">/posts</span>
+              </div>
+            </div>
+
+            <div class="result-content-group">
+              <h3 class="result-content-title">Título Recibido:</h3>
+              <p id="res-title" class="result-content-text"></p>
+            </div>
+
+            <div class="result-content-group">
+              <h3 class="result-content-title">Cuerpo Recibido:</h3>
+              <p id="res-body" class="result-content-text result-body-text"></p>
+            </div>
+
+            <!-- Inspección del Payload JSON devuelto -->
+            <div class="json-inspector">
+              <div class="json-header">
+                <span>Cuerpo JSON (Respuesta en crudo)</span>
+              </div>
+              <pre id="res-json" class="json-pre"><code></code></pre>
+            </div>
+          </div>
+        </div>
+
+        <!-- Indicador de Advertencia de Persistencia Teórica (Punto 20 de la Rúbrica) -->
+        <div class="persistence-notice">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <p>
+            <strong>Nota sobre persistencia:</strong> JSONPlaceholder es una API mock/simulada. Retorna exitosamente el nuevo recurso creado con un identificador único (ej. ID 101), pero los datos no son guardados de forma permanente en base de datos.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Pie de Página Institucional -->
+    <footer class="app-footer">
+      <p>
+        <strong>Ingeniería Web</strong> · Escuela Profesional de Ingeniería de Sistemas e Informática
+      </p>
+      <p class="footer-sub">
+        Demostración técnica de Fetch API, control asíncrono con <code>async/await</code>, validaciones con <code>trim()</code> y prevención de inyecciones con <code>textContent</code>.
+      </p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
